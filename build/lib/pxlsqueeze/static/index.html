@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>pxlsqueeze review</title>
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="/static/app.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <strong>pxlsqueeze</strong>
+    <span id="ver" class="muted"></span>
+    <span id="root" class="muted"></span>
+  </div>
+  <div id="totals" class="totals"></div>
+  <div id="job" class="job" aria-live="polite"></div>
+  <div class="top-actions">
+    <button id="trash-short" class="btn" hidden></button>
+    <button id="encode-all" class="btn" hidden></button>
+    <button id="finalize" class="btn btn-danger" hidden></button>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar" aria-label="Videos">
+    <div class="filters" role="tablist">
+      <button role="tab" data-filter="attention" class="tab" title="Everything still waiting on you">Needs a look <span class="count"></span></button>
+      <button role="tab" data-filter="ready" class="tab" title="Encoded and checked, just approve or reject">Ready <span class="count"></span></button>
+      <button role="tab" data-filter="all" class="tab">All <span class="count"></span></button>
+      <button role="tab" data-filter="approved" class="tab">Approved <span class="count"></span></button>
+      <button role="tab" data-filter="trash" class="tab">Trash <span class="count"></span></button>
+    </div>
+    <ul id="list" class="list"></ul>
+  </nav>
+
+  <main id="detail" class="detail">
+    <div class="empty">Loading videos…</div>
+  </main>
+</div>
+
+<dialog id="confirm" class="modal">
+  <form method="dialog">
+    <h2 id="confirm-title"></h2>
+    <p id="confirm-body"></p>
+    <div class="modal-actions">
+      <button value="cancel" class="btn">Cancel</button>
+      <button value="ok" id="confirm-ok" class="btn btn-danger"></button>
+    </div>
+  </form>
+</dialog>
+
+<div id="toast" class="toast" role="status" hidden></div>
+<script src="/static/app.js"></script>
+</body>
+</html>

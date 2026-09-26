@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pxlsqueeze"
+version = "0.4.1"
+description = "Batch compress, re-orient and trim Pixel phone videos with ffmpeg, with a local review UI."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+  "typer>=0.12",
+  "rich>=13",
+  "fastapi>=0.110",
+  "uvicorn>=0.29",
+  "numpy>=1.26",
+  "opencv-python-headless>=4.8",
+  "onnxruntime>=1.17",
+  "send2trash>=1.8",
+]
+
+[project.optional-dependencies]
+orient-ml = ["open_clip_torch>=2.24", "torch>=2.2", "pillow>=10"]
+dev = ["pytest>=8", "httpx>=0.27"]
+
+[project.scripts]
+pxlsqueeze = "pxlsqueeze.cli:app"
+
+[tool.setuptools]
+packages = ["pxlsqueeze"]
+
+[tool.setuptools.package-data]
+pxlsqueeze = ["static/*"]
