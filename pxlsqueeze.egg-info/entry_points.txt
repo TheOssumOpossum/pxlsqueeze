@@ -1,2 +1,0 @@
-[console_scripts]
-pxlsqueeze = pxlsqueeze.cli:app
