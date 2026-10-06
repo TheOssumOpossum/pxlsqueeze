@@ -68,9 +68,33 @@ def version() -> str:
     return out.splitlines()[0] if out else "unknown"
 
 
+MIN_VERSION = (6, 1)  # -fps_mode (5.1) and -enc_time_base demux (6.1)
+
+
 def version_tuple() -> tuple[int, int]:
     m = re.search(r"version n?(\d+)\.(\d+)", version())
-    return (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+    if m:
+        return int(m.group(1)), int(m.group(2))
+    # Git/nightly builds ("version 2021-08-29-git-...") carry no release number; infer it from libavcodec.
+    out = run([ffmpeg_bin(), "-hide_banner", "-version"]).stdout or ""
+    m = re.search(r"libavcodec\s+(\d+)\.\s*(\d+)", out)
+    if not m:
+        return (0, 0)
+    major, minor = int(m.group(1)), int(m.group(2))
+    if major >= 61:
+        return (7, 0)
+    if major == 60:
+        return (6, 1) if minor >= 31 else (6, 0)
+    return (5, 0) if major == 59 else (4, 0)
+
+
+def check_version() -> None:
+    if version_tuple() < MIN_VERSION:
+        raise FFmpegError(
+            f"ffmpeg at {ffmpeg_bin()} is too old ({version()}); pxlsqueeze needs ffmpeg "
+            f"{MIN_VERSION[0]}.{MIN_VERSION[1]} or newer. Upgrade it (macOS: `brew upgrade ffmpeg`, "
+            f"Windows: `winget install Gyan.FFmpeg`) or pass --ffmpeg PATH to a newer build."
+        )
 
 
 @functools.lru_cache(maxsize=None)

@@ -44,6 +44,7 @@ def _open(directory: Path, ffmpeg: Optional[str], codec: Optional[str] = None, c
           short_seconds: Optional[float] = None) -> Manifest:
     try:
         ff.set_binaries(ffmpeg)
+        ff.check_version()
     except ff.FFmpegError as e:
         console.print(f"[red]{e}[/red]")
         raise typer.Exit(2) from e
@@ -312,7 +313,7 @@ def doctor(ffmpeg: Optional[str] = FFmpegOpt) -> None:
     console.print(f"pxlsqueeze {__version__}")
     console.print(f"ffmpeg: {ff.version()}")
     v = ff.version_tuple()
-    console.print(f"  version ≥ 6.1: {ok if v >= (6, 1) else '[red]no — please upgrade[/red]'}")
+    console.print(f"  version ≥ 6.1: {ok if v >= ff.MIN_VERSION else '[red]no — please upgrade[/red]'}")
     console.print(f"  libx265 (HEVC): {ok if ff.has_encoder('libx265') else '[red]no[/red]'}")
     console.print(f"  libsvtav1 (AV1, optional): {ok if ff.has_encoder('libsvtav1') else no}")
     console.print(f"  libx264 (review previews): {ok if ff.has_encoder('libx264') else no}")
