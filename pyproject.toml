@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "pxlsqueeze"
-version = "0.4.1"
+version = "0.4.2"
 description = "Batch compress, re-orient and trim Pixel phone videos with ffmpeg, with a local review UI."
 readme = "README.md"
 requires-python = ">=3.11"
