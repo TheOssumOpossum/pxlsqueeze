@@ -80,6 +80,20 @@ def main(out: Path) -> None:
        "-f", "lavfi", "-i", "sine=frequency=250:duration=2",
        *common_v, "-c:a", "aac", "-shortest", str(out / "PXL_20260920_160000000.mp4"))
 
+    # 8. Recording started in landscape, then the phone was spun round before talking: 10 s of
+    #    faceless lead-in, then a sideways talking head. Expect +90 and a trim despite the lead-in.
+    lead = tmp / "lead.wav"
+    sh("-f", "lavfi", "-t", "10", "-i", "anullsrc=r=48000:cl=stereo", "-i", str(tmp / "s.wav"),
+       "-f", "lavfi", "-t", "1", "-i", "anullsrc=r=48000:cl=stereo",
+       "-filter_complex", "[0][1][2]concat=n=3:v=0:a=1", str(lead))
+    talk = dur - 8 + 1  # speech plus 1 s of trailing silence
+    sh("-f", "lavfi", "-i", "testsrc2=size=720x1280:rate=30:duration=10", *loop, "-i", str(lead),
+       "-filter_complex",
+       f"[0:v]format=yuv420p,setsar=1[a];[1:v]transpose=2,noise=alls=6:allf=t,trim=duration={talk:.2f},"
+       "setpts=PTS-STARTPTS,format=yuv420p,setsar=1[b];[a][b]concat=n=2:v=1:a=0[v]",
+       "-map", "[v]", "-map", "2:a", *common_v, "-c:a", "aac", "-b:a", "128k",
+       str(out / "PXL_20260920_170000000.mp4"))
+
     # 7. A variant filename (skipped by default) and a non-Pixel file (ignored).
     sh("-f", "lavfi", "-i", "testsrc2=size=320x240:rate=30:duration=1", *common_v,
        str(out / "PXL_20260920_150000000.LS.mp4"))

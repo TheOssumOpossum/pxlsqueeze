@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import numpy as np
 
@@ -109,19 +109,24 @@ def clean_segments(segs: list[list[float]]) -> list[list[float]]:
     return [[round(s, 2), round(e, 2)] for s, e in merged if e - s >= MIN_ISOLATED]
 
 
-def decide_trim(segs: list[list[float]], duration: float, face_presence: float) -> dict[str, Any]:
+def enough_speech(segs: list[list[float]], duration: float) -> bool:
     total = sum(e - s for s, e in segs)
-    talking = (
-        duration >= MIN_CLIP_FOR_TRIM
-        and total >= TALK_MIN_SPEECH
-        and total >= TALK_MIN_RATIO * duration
-        and face_presence >= TALK_MIN_FACE_PRESENCE
-    )
+    return duration >= MIN_CLIP_FOR_TRIM and total >= TALK_MIN_SPEECH and total >= TALK_MIN_RATIO * duration
+
+
+def talk_window(segs: list[list[float]], duration: float) -> tuple[float, float]:
+    """The part of the clip that would be kept: first to last speech, padded."""
+    return max(0.0, segs[0][0] - PAD), min(duration, segs[-1][1] + PAD)
+
+
+def decide_trim(segs: list[list[float]], duration: float, face_presence: float) -> dict[str, Any]:
+    """face_presence should be measured over talk_window(), not the whole clip."""
+    total = sum(e - s for s, e in segs)
+    talking = enough_speech(segs, duration) and face_presence >= TALK_MIN_FACE_PRESENCE
     result: dict[str, Any] = {"is_talking": bool(talking), "start": None, "end": None,
                               "speech_total": round(total, 2)}
     if talking:
-        start = max(0.0, segs[0][0] - PAD)
-        end = min(duration, segs[-1][1] + PAD)
+        start, end = talk_window(segs, duration)
         if start + (duration - end) >= MIN_TRIM_GAIN:
             result["start"], result["end"] = round(start, 2), round(end, 2)
         else:
@@ -147,10 +152,13 @@ def get_vad() -> SileroVAD | None:
     return _vad
 
 
-def analyze(path: Path, probe: dict[str, Any], face_presence: float) -> dict[str, Any]:
+def analyze(path: Path, probe: dict[str, Any],
+            presence_in: Callable[[float, float], float]) -> dict[str, Any]:
+    """presence_in(start, end) gives the face presence over that stretch of the clip."""
     duration = float(probe.get("duration") or 0.0)
     if not probe.get("has_audio"):
-        return {"speech": [], "vad": None, "is_talking": False, "start": None, "end": None, "speech_total": 0.0}
+        return {"speech": [], "vad": None, "is_talking": False, "start": None, "end": None,
+                "speech_total": 0.0, "face_presence": None}
     audio = extract_audio(path)
     vad = get_vad()
     if vad is not None:
@@ -158,4 +166,7 @@ def analyze(path: Path, probe: dict[str, Any], face_presence: float) -> dict[str
     else:
         probs, method = energy_probs(audio), "energy"
     segs = clean_segments(segments_from_probs(probs))
-    return {"speech": segs, "vad": method, **decide_trim(segs, duration, face_presence)}
+    # Only look for faces where the speech is, and only if there's enough of it to matter.
+    presence = presence_in(*talk_window(segs, duration)) if enough_speech(segs, duration) else None
+    return {"speech": segs, "vad": method, "face_presence": None if presence is None else round(presence, 3),
+            **decide_trim(segs, duration, presence or 0.0)}

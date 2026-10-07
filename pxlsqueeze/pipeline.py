@@ -35,9 +35,10 @@ def analyze_item(m: Manifest, item_id: str, use_clip: bool = True) -> dict[str, 
         if probe.get("extra_streams"):
             kinds = ", ".join(sorted({str(s["codec"]) for s in probe["extra_streams"]}))
             warnings.append(f"Dropping extra stream(s) not needed for playback: {kinds}.")
-        rot = orientation.analyze(src, probe, detector(), use_clip=use_clip)
-        trim = speech.analyze(src, probe, rot["face_presence"])
         prev = it["rotation"].get("override"), it["trim"].get("override")
+        rot = orientation.analyze(src, probe, detector(), use_clip=use_clip)
+        upright = prev[0] if prev[0] is not None else rot["auto"]
+        trim = speech.analyze(src, probe, lambda s, e: orientation.face_presence(src, s, e, upright, detector()))
         m.update(item_id, save=False, rotation=None, trim=None)
         return m.update(
             item_id,

@@ -78,7 +78,7 @@ def test_segments_and_trim_rules() -> None:
 
 def test_discovery(processed: Manifest) -> None:
     ids = {it["id"] for it in processed}
-    assert ids == {f"PXL_20260920_1{h}0000000" for h in "012346"}  # variant + IMG_ ignored
+    assert ids == {f"PXL_20260920_1{h}0000000" for h in "0123467"}  # variant + IMG_ ignored
 
 
 def test_rotation_detection(processed: Manifest) -> None:
@@ -95,6 +95,16 @@ def test_trim_detection(processed: Manifest) -> None:
     assert it["trim"]["is_talking"]
     assert 2.5 < s < 4.0 and 9.5 < e < 11.5
     assert effective_trim(processed.get("PXL_20260920_100000000")) == (0.0, 6.0)
+
+
+def test_trim_after_faceless_lead_in(processed: Manifest) -> None:
+    # Faces in under half the whole clip, but in all of the part that's kept.
+    it = processed.get("PXL_20260920_170000000")
+    assert it["rotation"]["auto"] == 90
+    assert it["rotation"]["face_presence"] < 0.5 <= it["trim"]["face_presence"]
+    assert it["trim"]["is_talking"]
+    s, e = effective_trim(it)
+    assert 8.5 < s < 10.0 and e < it["probe"]["duration"]
 
 
 def test_outputs(processed: Manifest) -> None:
@@ -134,7 +144,7 @@ def test_server_flow(processed: Manifest, tmp_path: Path) -> None:
     m = processed
     client = TestClient(create_app(m))
     st = client.get("/api/state").json()
-    assert st["totals"]["videos"] == 6
+    assert st["totals"]["videos"] == 7
     short = [i["id"] for i in st["items"] if "short" in i["flags"]]
     assert short == ["PXL_20260920_160000000"]
 

@@ -127,10 +127,14 @@ def sample_times(duration: float, n: int = N_FRAMES) -> list[float]:
 
 
 def load_frames(path: Path, duration: float) -> list[np.ndarray]:
+    return read_frames(path, sample_times(duration))
+
+
+def read_frames(path: Path, times: list[float], rotation: int = 0) -> list[np.ndarray]:
     frames = []
-    for t in sample_times(duration):
+    for t in times:
         try:
-            data = ff.extract_frame(path, t, max_edge=ANALYSIS_EDGE, fmt="png")
+            data = ff.extract_frame(path, t, rotation=rotation, max_edge=ANALYSIS_EDGE, fmt="png")
         except ff.FFmpegError as e:
             log.warning("%s", e)
             continue
@@ -184,3 +188,17 @@ def analyze(path: Path, probe: dict[str, Any], detector: FaceDetector, use_clip:
         "face_presence": round(presence, 3),
         "scores": {str(k): round(float(v), 3) for k, v in scores.items()},
     }
+
+
+def face_presence(path: Path, start: float, end: float, rotation: int, detector: FaceDetector,
+                  n: int = N_FRAMES) -> float:
+    """Share of frames between start and end (seconds) showing a talking-size face, upright at `rotation`.
+
+    Measured only over the part of the clip that would be kept, so a faceless lead-in
+    (e.g. spinning the phone round before talking) doesn't count against it.
+    """
+    span = max(0.0, end - start)
+    frames = read_frames(path, [start + span * (i + 0.5) / n for i in range(n)], rotation)
+    if not frames:
+        return 0.0
+    return sum(1 for f in frames if any(x.area >= TALK_FACE_AREA_MIN for x in detector.detect(f))) / len(frames)
